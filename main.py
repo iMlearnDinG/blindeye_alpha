@@ -610,3 +610,5 @@ while running and count < 9:
 
 # Quit Pygame
 pygame.quit()
+
+#Details Update
