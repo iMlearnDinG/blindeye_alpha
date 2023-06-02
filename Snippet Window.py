@@ -112,3 +112,5 @@ print(f"{wc1}".ljust(15) + f"{wc2}".ljust(15))
     player2_rect.right = SCREEN_WIDTH - 20
     player2_rect.top = 60
     screen.blit(player2_text, player2_rect)
+
+#Details Update
