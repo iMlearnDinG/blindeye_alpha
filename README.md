@@ -10,3 +10,6 @@ If you would like to contribute, please submit your requests for review and I lo
 
 Cheers,
 
+Modules:
+pip install pygame
+
