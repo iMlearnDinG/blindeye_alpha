@@ -1,0 +1,64 @@
+<!-- lobby.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lobby</title>
+  <style>
+    /* Style for the disabled button */
+    button[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome, {{ username }}!</h1>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <ul class=flashes>
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Game 1 button -->
+  <form action="/game" method="post">
+    <button type="submit" name="game" value="1" {% if game1_disabled %}disabled{% endif %}>
+      Game 1
+    </button>
+  </form>
+
+  <!-- Game 2 button -->
+  <form action="/game" method="post">
+    <button type="submit" name="game" value="2" {% if game2_disabled %}disabled{% endif %}>
+      Game 2
+    </button>
+  </form>
+
+  <a href="/logout">Logout</a>
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+  <script>
+    var socket = io();
+
+    socket.on('connect', function() {
+      // Send the 'lobby' event to the server to establish a connection
+      socket.emit('lobby');
+    });
+
+    // Handle the 'lobby_response' event
+    socket.on('lobby_response', function(data) {
+      console.log('Connected to lobby:', data.username);
+    });
+
+    // Handle the 'redirect' event
+    socket.on('redirect', function(data) {
+      window.location.href = data.location;
+    });
+  </script>
+</body>
+</html>

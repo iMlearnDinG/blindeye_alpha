@@ -1,0 +1,152 @@
+<!-- game.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Blindeye Table</title>
+  <style>
+    body {
+      background-color: #000000;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+
+    #game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      background-color: #444444;
+      border-radius: 10px;
+    }
+
+    #table-image {
+      width: 500px;
+      height: 300px;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    .card {
+      width: 79px;
+      height: 118px;
+      background-color: #ffffff;
+      border-radius: 5px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      position: absolute;
+      cursor: grab;
+      user-select: none; /* Disable text selection */
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <!-- Add this button -->
+    <button id="return-to-lobby">Return to Lobby</button>
+    <div id="table-image">
+      <img src="{{ url_for('static', filename='cards/table.png') }}" alt="Table">
+    </div>
+
+    <div class="player-area">
+      <!-- HTML representation for player area -->
+    </div>
+
+    <div class="dealer-area">
+      <!-- HTML representation for dealer area -->
+    </div>
+
+    <div id="textbox">
+      <!-- HTML representation for textbox -->
+    </div>
+
+    <!-- Card elements -->
+    <div id="card1" class="card" onmousedown="startDragging(event)">Card 1</div>
+    <div id="card2" class="card" onmousedown="startDragging(event)">Card 2</div>
+    <!-- Add more card elements as needed -->
+  </div>
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+<script>
+    var socket = io();
+    var game_number = 1;
+
+    socket.on('card_moved', function(data) {
+      var cardId = data.card_id;
+      var newPosition = data.new_position;
+      var cardElement = document.getElementById(cardId);
+      cardElement.style.left = newPosition.x + 'px';
+      cardElement.style.top = newPosition.y + 'px';
+    });
+
+    function moveCard(cardId, newPosition) {
+      socket.emit('move_card', {'card_id': cardId, 'new_position': newPosition});
+    }
+
+    var draggedCard = null;
+    var offsetX = 0;
+    var offsetY = 0;
+
+    function startDragging(event) {
+      draggedCard = event.target;
+      draggedCard.style.zIndex = 1;
+      draggedCard.style.position = 'absolute';
+
+      var rect = draggedCard.getBoundingClientRect();
+      var initialPosition = { x: rect.left, y: rect.top };
+
+      offsetX = event.clientX - initialPosition.x;
+      offsetY = event.clientY - initialPosition.y + window.scrollY;
+
+      document.addEventListener('mousemove', moveCardOnMouseMove);
+      document.addEventListener('mouseup', stopDragging);
+    }
+
+    function moveCardOnMouseMove(event) {
+      if (draggedCard) {
+        var newPosition = {
+          x: event.clientX - offsetX,
+          y: event.clientY - offsetY
+        };
+        draggedCard.style.left = newPosition.x + 'px';
+        draggedCard.style.top = newPosition.y + 'px';
+        moveCard(draggedCard.id, newPosition);
+      }
+    }
+
+    function stopDragging(event) {
+      if (draggedCard) {
+        var finalPosition = {
+          x: event.clientX - offsetX,
+          y: event.clientY - offsetY
+        };
+        moveCard(draggedCard.id, finalPosition);
+        draggedCard.style.zIndex = '';
+        draggedCard = null;
+      }
+      document.removeEventListener('mousemove', moveCardOnMouseMove);
+      document.removeEventListener('mouseup', stopDragging);
+    }
+
+    window.onbeforeunload = function() {
+      // Ensure game_number is available in this scope. You might need to adjust this part based on your actual code structure.
+      socket.emit('leave_game', {game: game_number});
+    } // <- This bracket was missing.
+
+    document.getElementById('return-to-lobby').addEventListener('click', function() {
+        // Emit the 'leave_game' event to the server when the button is clicked
+        socket.emit('leave_game', {game: game_number});
+
+        // Redirect the user to the lobby page
+        window.location.href = '/lobby';
+    });
+</script>
+</body>
+</html>
+
