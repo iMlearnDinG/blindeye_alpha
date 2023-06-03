@@ -102,7 +102,7 @@
       var initialPosition = { x: rect.left, y: rect.top };
 
       offsetX = event.clientX - initialPosition.x;
-      offsetY = event.clientY - initialPosition.y + window.scrollY;
+      offsetY = event.clientY - initialPosition.y;
 
       document.addEventListener('mousemove', moveCardOnMouseMove);
       document.addEventListener('mouseup', stopDragging);
