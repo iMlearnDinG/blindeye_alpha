@@ -11,19 +11,26 @@ class ServerInstance:
         self.current_connections = 0
         self.update_queue = update_queue
         self.instance_number = instance_number
+        self.clients = []  # List to store connected clients
 
-    def add_connection(self):
+    def add_connection(self, client_socket):
         if self.current_connections < self.max_connections:
             self.current_connections += 1
+            self.clients.append(client_socket)
             self.update_queue.put(("connect", self.instance_number, self.current_connections - 1))
             return True
         else:
             return False
 
-    def remove_connection(self):
+    def remove_connection(self, client_socket):
         if self.current_connections > 0:
             self.current_connections -= 1
+            self.clients.remove(client_socket)
             self.update_queue.put(("disconnect", self.instance_number, self.current_connections))
+
+    def send_to_all(self, message):  # Send message to all connected clients
+        for client_socket in self.clients:
+            client_socket.send(message.encode())
 
 def handle_client(client_socket, instance):
     try:
@@ -34,12 +41,13 @@ def handle_client(client_socket, instance):
             if message.lower() == "quit":
                 break
 
-            client_socket.send(f"Echo: {message}".encode())
+            instance.send_to_all(f"Echo: {message}")  # Send message to all connected clients
     except ConnectionResetError:
         print("Connection closed by client")
     finally:
-        instance.remove_connection()
+        instance.remove_connection(client_socket)
         client_socket.close()
+
 
 def start_server(host, port):
     update_queue = queue.Queue()
@@ -96,24 +104,23 @@ def accept_clients(host, port, instances):
 
     print(f"Server is listening on {host}:{port}")
 
-    current_instance = 0
-
     while True:
         client_socket, client_address = server_socket.accept()
         print(f"Connection attempt from {client_address}")
 
-        while not instances[current_instance].add_connection():
-            current_instance += 1
-            if current_instance >= len(instances):
-                print("All instances are full.")
-                client_socket.send("Server full".encode())
-                client_socket.close()
-                current_instance = 0
+        for i, instance in enumerate(instances):
+            if instance.add_connection(client_socket):
+                print(f"Connected to instance {i + 1} with {client_address}")
+                client_socket.send(f"Connected to instance {i + 1}".encode())  # send instance number to client
+                client_handler = threading.Thread(target=handle_client, args=(client_socket, instance))
+                client_handler.start()
                 break
         else:
-            print(f"Connected to instance {current_instance + 1} with {client_address}")
-            client_handler = threading.Thread(target=handle_client, args=(client_socket, instances[current_instance]))
-            client_handler.start()
+            print("All instances are full.")
+            client_socket.send("Server full".encode())
+            client_socket.close()
+
+
 
 if __name__ == "__main__":
     start_server("localhost", 12345)
